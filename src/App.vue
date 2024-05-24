@@ -5,16 +5,16 @@ import HelloWorld from './components/HelloWorld.vue'
 
 <template>
   <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="25" height="25" />
+    <img alt="Vue logo" class="logo" src="@/assets/lion.gif" width="200" />
 
     <div class="wrapper">
       <HelloWorld msg="Pixel Maker" />
 
       <nav>
         <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-        <RouterLink to="/maker">Image Maker</RouterLink>
-        <RouterLink to="/layer">Image Maker Layer</RouterLink>
+        <!-- <RouterLink to="/about">About</RouterLink>
+        <RouterLink to="/maker">Image Maker</RouterLink> -->
+        <RouterLink to="/layer">Pixel Maker</RouterLink>
       </nav>
     </div>
   </header>
@@ -58,7 +58,19 @@ nav a:first-of-type {
   border: 0;
 }
 
-@media (min-width: 1024px) {
+@media (max-width: 1024px) {
+  nav {
+    margin-top: 0px;
+  }
+
+  .logo {
+    display: block;
+    width: 100px;
+    margin: 0 auto 0px;
+  }
+}
+
+@media (min-width: 1300px) {
   header {
     display: flex;
     place-items: center;
