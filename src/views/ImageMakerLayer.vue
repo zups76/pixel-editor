@@ -33,7 +33,7 @@
         
         <div style="display: grid; grid-template-columns: auto auto 1fr; gap: 20px;">
           <!-- Canvas -->
-          <div class="canvas">
+          <div class="canvas" :style="{ borderColor: borderColor }">
             
             <div style="padding: 1px; position: relative; font-size: 11px;">
               <div :class="{'bg-disable': bg_disable}" :style="{position: 'absolute', display: 'grid', gridTemplateColumns: '1fr '.repeat(canvas_size), zIndex: 0}">
@@ -56,6 +56,11 @@
             </div>
           </div>
 
+          <div>
+            <button @click="borderColor = 'black'" style="background-color: black; border: none; width: 20px; height: 20px;"></button>
+            <button @click="borderColor = '#999999ff'" style="background-color: #999999ff; border: none; width: 20px; height: 20px;"></button>
+          </div>
+          
           <div>
             <button @click="color(true)" style="border: 1px solid; width: -webkit-fill-available; height: auto; margin-bottom: 10px;">Save Color</button>
             <div class="color_btn" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 3px; margin-bottom: 5px;">
@@ -142,6 +147,8 @@ export default {
       color_backgroundColor: '',
       current_data: {},
       color_pick: '#ff0000',
+      borderColor: 'black',
+      borderColor: 'black',
       R: 0,
       G: 0,
       B: 0,
@@ -623,8 +630,8 @@ button {
   /* grid-template-columns: auto 1fr auto; */
   width: fit-content;
   height: fit-content;
-  border: 2px dotted;
-  padding: 10px;
+  border: 10px dashed;
+  /* padding: 10px; */
   button {
     width: auto;
     height: auto;
