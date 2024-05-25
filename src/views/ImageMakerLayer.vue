@@ -2,7 +2,7 @@
   <div class="pixel-editor">
     
     <div class="select-size">
-      <button @click="canvas_size=n" v-for="n in pxList" v-bind:key="n" :class="{ selected: canvas_size == n }">{{ n }} x {{ n }}</button>
+      <button @click="changeCanvasSize(n)" v-for="n in pxList" v-bind:key="n" :class="{ selected: canvas_size == n }">{{ n }} x {{ n }}</button>
     </div>
 
     <div class="main-area">
@@ -22,7 +22,8 @@
         <button @click="setData(-1)" title="실행취소"><img src="@/assets/undo_redo.png" class="transform-x" width="32"><br>Undo</button>
         <button @click="setData(1)" title="다시실행"><img src="@/assets/undo_redo.png" width="32"><br>Redo</button>
         <button @click="current_data = {}" title="도화지 초기화"><img src="@/assets/broomstick.png" width="32"><br>Clear</button>
-        <button @click="saveData()" title="추가/수정"><img src="@/assets/add.png" width="32"><br>Add</button>
+        <button v-if="current_backup_idx == -1" @click="saveData()" title="추가/수정"><img src="@/assets/add.png" width="32"><br>Add</button>
+        <button v-else @click="saveData()" title="추가/수정"><img src="@/assets/save-disk.png" width="32"><br>Save</button>
         <hr>
         <hr>
         <button @click="setData(0)" title="초기화"><img src="@/assets/new-paper.png" width="32"><br>New</button>
@@ -32,19 +33,20 @@
       <div class="draw-layer">
         
         <div style="display: grid; grid-template-columns: auto auto 1fr; gap: 20px;">
+
           <!-- Canvas -->
           <div class="canvas" :style="{ borderColor: borderColor }">
             
             <div style="padding: 1px; position: relative; font-size: 11px;">
               <div :class="{'bg-disable': bg_disable}" :style="{position: 'absolute', display: 'grid', gridTemplateColumns: '1fr '.repeat(canvas_size), zIndex: 0}">
-                <template v-for="i in canvas_size" v-bind:key="i">
+                <template v-for="i in canvas_size_row" v-bind:key="i" >
                   <template v-for="j in canvas_size" v-bind:key="j">
-                    <div :style="{width: dot_pixel+'px', height: dot_pixel+'px', background: current_data[i + '_' + j] ? '' : bg[((i % 2) + (j % 2)) % 2]}"></div>
+                    <div :row="i" :col="j" :style="{width: dot_pixel+'px', height: dot_pixel+'px', background: current_data[i + '_' + j] ? '' : bgColor ? bgColor : bg[((i % 2) + (j % 2)) % 2]}"></div>
                   </template>
                 </template>
               </div>
               <div :style="{display: 'grid', gridTemplateColumns: '1fr '.repeat(canvas_size), position: 'inherit', zIndex: 2}">
-                <template v-for="i in canvas_size" v-bind:key="i">
+                <template v-for="i in canvas_size_row" v-bind:key="i">
                   <template v-for="j in canvas_size" v-bind:key="j">
                     <div :row="i" :col="j" :style="{width: dot_pixel+'px', height: dot_pixel+'px', background: current_data[i + '_' + j] ? current_data[i + '_' + j] : '' }"
                       @mousedown="mousedown($event, $event.target)" @mouseover="mouseover($event, $event.target)"
@@ -56,13 +58,23 @@
             </div>
           </div>
 
-          <div>
-            <button @click="borderColor = 'black'" style="background-color: black; border: none; width: 20px; height: 20px;"></button>
-            <button @click="borderColor = '#999999ff'" style="background-color: #999999ff; border: none; width: 20px; height: 20px;"></button>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <button @click="borderColor = 'black'" style="background-color: black; border: 1px solid; width: 25px; height: 25px;"></button>
+            <button @click="borderColor = '#999999ff'" style="background-color: #999999ff; border: 1px solid; width: 25px; height: 25px;"></button>
+            <button @click="borderColor = 'white'" style="background-color: white; border: 1px solid; width: 25px; height: 25px;"></button>
+            <hr>
+            <hr>
+            <hr>
+            <hr>
+            <hr>
+            <hr>
+            <button @click="bgColor = 'black'" style="background-color: black; border: 1px solid; width: 25px; height: 25px;"></button>
+            <button @click="bgColor = '#999999ff'" style="background-color: #999999ff; border: 1px solid; width: 25px; height: 25px;"></button>
+            <button @click="bgColor = 'white'" style="background-color: white; border: 1px solid; width: 25px; height: 25px;"></button>
+            <button @click="bgColor = ''" style="background-color: white; border: 1px solid; width: 25px; height: 25px;">T</button>
           </div>
           
           <div>
-            <button @click="color(true)" style="border: 1px solid; width: -webkit-fill-available; height: auto; margin-bottom: 10px;">Save Color</button>
             <div class="color_btn" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 3px; margin-bottom: 5px;">
               <button v-for="(c, idx) in color_history" v-bind:key="c" @click="color(false, c)" :style="{border: '1px solid', backgroundColor: c}" :title="c" @dblclick="color_del(idx)"></button>
             </div>
@@ -76,8 +88,7 @@
               <span>B</span><input type="range" min="0" max="255" v-model="B" @input="B = $event.target.value">
               <span>A</span><input type="range" min="0" max="255" v-model="A" @input="A = $event.target.value">
             </div>
-            
-
+            <button @click="color(true)" style="border: 1px solid; width: -webkit-fill-available; height: auto; margin-top: 20px;">Save Color</button>
 
             <div class="layer-arrow">
               <button @click="move_pixel(0, -1)" class="arrow" style="grid-row: 1 / 3;"><img src="@/assets/arrow_left.png" width="32"></button>
@@ -92,25 +103,39 @@
     </div>
     
     <div class="layers-btn">
-      <button @click="insert_frame(-1)">이전에 추가</button>
-      <select v-model="iii_frame">
-        <option v-for="(data, index) in save_data" v-bind:key="index" :value="index">Layer - {{ index }}</option>
+      <img @click="insert_frame(-1)" src="@/assets/import.png" width="32" title="이전에 추가" class="hand">
+      <select v-model="selected_layer">
+        <option v-for="(data, index) in save_data" v-bind:key="index" :value="index">Layer - {{ index + 1 }}</option>
       </select>
-      <button @click="insert_frame(1)">이후에 추가</button>
-      <button @click="delete_frame()">선택한 프레임 삭제</button>
+      <img @click="insert_frame(1)" src="@/assets/import.png" width="32" title="이후에 추가" class="transform-x hand">
+
+      <!-- <img @click="saveData(selected_layer)" src="@/assets/save-disk.png" width="32" :style="{filter: selected_layer > -1 ? 'grayscale(0)' : 'grayscale(1)'}"><br> -->
+      
+      <select v-model="interval">
+        <option v-for="data in intervals" v-bind:key="data" :value="data">{{ data >= 1000 ? parseInt(data/1000)+'초 ' : '' }} {{ data%1000 > 0 ? data%1000+' ms' : '' }}</option>
+      </select>ms 간격으로
+
+      <!-- this.save_data.length -->
+      <img @click="play()" src="@/assets/play-button.png" width="32" title="Play" class="hand" :style="{filter: playing || save_data.length < 2 ? 'grayscale(1)' : 'grayscale(0)'}">
+      <img @click="stop()" src="@/assets/stop-button.png" width="32" title="Stop" class="hand" :style="{filter: playing ? 'grayscale(0)' : 'grayscale(1)'}">
     </div>
+
     <div class="layers">
-      <div @click="select_layer(index)" class="item" v-for="(data, index) in save_data" v-bind:key="index">
-        <div :class="{title: true, selected: selected_layer == index}">Layer-{{ index }}</div>
-        <div :class="{'bg-disable': bg_disable, background: true}" :style="{gridTemplateColumns: '1fr '.repeat(canvas_size)}">
-          <template v-for="i in canvas_size" v-bind:key="i">
+      <div class="item" v-for="(data, index) in save_data" v-bind:key="index">
+        <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 3px;">
+          <span @click="go_frame(index)" :class="{title: true, selected: current_backup_idx == index}">Layer-{{ index + 1 }}</span>
+          <img @click="saveData(selected_layer)" src="@/assets/save-disk.png" width="24" :style="{filter: selected_layer > -1 ? 'grayscale(0)' : 'grayscale(1)'}">
+          <img @click="delete_frame(index)" src="@/assets/bin.png" :title="`Delete ${selected_layer + 1} frames`" class="hand" style="width: 24px; height: 24px;">
+        </div>
+        <div @click="go_frame(index)" :class="{'bg-disable': bg_disable, background: true}" :style="{gridTemplateColumns: '1fr '.repeat(canvas_size)}">
+          <template v-for="i in canvas_size_row" v-bind:key="i">
             <template v-for="j in canvas_size" v-bind:key="j">
               <div :style="{width: px+'px', height: px+'px', background: data[i+'_'+j] ? data[i+'_'+j] : bg[((i % 2) + (j % 2)) % 2]}"></div>
             </template>
           </template>
         </div>
         <div class="foreground" :style="{gridTemplateColumns: '1fr '.repeat(canvas_size)}">
-          <template v-for="i in canvas_size" v-bind:key="i">
+          <template v-for="i in canvas_size_row" v-bind:key="i">
             <template v-for="j in canvas_size" v-bind:key="j">
               <div :style="{width: px+'px', height: px+'px', background: data[i+'_'+j] ? data[i+'_'+j] : ''}"></div>
             </template>
@@ -128,12 +153,21 @@ export default {
   data() {
 
     let canvas_size = 24
+    let canvas_size_row = 24
     let px = parseInt(150 / canvas_size)
-    let pxList = [8, 16, 24, 32, 48]
-    let px_to_dot_pixel = [30, 20, 15, 11, 9]
+    let pxList = [8, 16, 24, 32, 48, 128]
+    let px_to_dot_pixel = [30, 20, 15, 11, 9, 4]
 
-    let color_history = ['#000000ff', '#ff0000ff', '#00ff00ff', '#0000ffff', '#ffff00ff', '#ff00ffff', '#00ffffff', '#999999ff', '#333333ff', '#00000088']
+    let color_history = ['#000000ff', '#ffffffff', '#ff0000ff', '#00ff00ff', '#0000ffff', '#ffff00ff', '#ff00ffff', '#00ffffff', '#999999ff', '#333333ff']
 
+    let intervals = []
+
+      for(let i=50;i<1000;i+=10) {
+        intervals.push(i)
+      }
+      for(let i=1000;i<=5000;i+=200) {
+        intervals.push(i)
+      }
     return {
       color_history,
       px,
@@ -143,12 +177,13 @@ export default {
       mode: 'draw',
       clicking: false,
       canvas_size,
+      canvas_size_row,
       bg: ['#e6e6e6', '#ffffff'],
       color_backgroundColor: '',
       current_data: {},
-      color_pick: '#ff0000',
+      bgColor: '',
       borderColor: 'black',
-      borderColor: 'black',
+      color_pick: '#000000',
       R: 0,
       G: 0,
       B: 0,
@@ -156,10 +191,9 @@ export default {
       history: [{}],
       history_idx: 0,
       save_data: [],
-      iii_frame: 0,
       current_backup_idx: -1,
       current_backup: null,
-      intervals: [100, 200, 300, 400, 500],
+      intervals,
       interval: 200,
       playing: false,
       prev_frame: false,
@@ -174,12 +208,20 @@ export default {
     this.color_apply()
   },
   watch: {
+    canvas_size_row: function (vv) {
+      this.canvas_size_row = parseInt(vv)
+    },
     canvas_size: function (vv) {
       this.canvas_size = parseInt(vv)
+      this.canvas_size_row = parseInt(vv)
       // this.current_data = {}
       // this.history = [{}]
       // this.history_idx = 0
       this.dot_pixel = this.px_to_dot_pixel[this.pxList.indexOf(this.canvas_size)]
+      console.log(this.dot_pixel)
+      if(!this.dot_pixel) {
+        this.dot_pixel = 3
+      }
     },
     R: function (vv) {
       this.color_apply()
@@ -196,8 +238,17 @@ export default {
     color_pick: function (vv) {
       this.color_pick_apply()
     },
+    color_backgroundColor: function (vv) {
+      this.color_pick_apply()
+    },
   },
   methods: {
+    changeCanvasSize(n) {
+      if(this.canvas_size == n || !confirm('캔버스 크기를 변경합니까? 작업 데이터가 삭제됩니다.')) {
+        return
+      }
+      this.canvas_size = n
+    },
     color_del(idx) {
       if(confirm('del?')) {
         var _color_history = []
@@ -221,12 +272,6 @@ export default {
         
         this.color_backgroundColor = color
       }
-    },
-    select_layer(idx) {
-      if(this.selected_layer == idx)
-        this.selected_layer = -1
-      else
-        this.selected_layer = idx
     },
     export_png() {
       if(this.playing) return
@@ -289,7 +334,7 @@ export default {
       if(_row != 0) {
         var temp = {}
         if(_row == -1) {
-          for(var row=2; row<=this.canvas_size; row++) {
+          for(var row=2; row<=this.canvas_size_row; row++) {
             for(var col=1; col<=this.canvas_size; col++) {
               if(this.current_data.hasOwnProperty(row+'_'+col)) {
                 temp[(row-1)+'_'+col] = this.current_data[row+'_'+col]
@@ -297,8 +342,7 @@ export default {
             }
           }
         } else {
-          console.log(this.canvas_size-1)
-          for(var row=this.canvas_size-1; row>0; row--) {
+          for(var row=this.canvas_size_row-1; row>0; row--) {
             for(var col=1; col<=this.canvas_size; col++) {
               if(this.current_data.hasOwnProperty(row+'_'+col)) {
                 temp[(row+1)+'_'+col] = this.current_data[row+'_'+col]
@@ -311,7 +355,7 @@ export default {
       if(_col != 0) {
         var temp = {}
         if(_col == -1) {
-          for(var row=1; row<=this.canvas_size; row++) {
+          for(var row=1; row<=this.canvas_size_row; row++) {
             for(var col=2; col<=this.canvas_size; col++) {
               if(this.current_data.hasOwnProperty(row+'_'+col)) {
                 temp[row+'_'+(col-1)] = this.current_data[row+'_'+col]
@@ -319,8 +363,7 @@ export default {
             }
           }
         } else {
-          console.log(this.canvas_size-1)
-          for(var row=1; row<=this.canvas_size; row++) {
+          for(var row=1; row<=this.canvas_size_row; row++) {
             for(var col=this.canvas_size-1; col>0; col--) {
               if(this.current_data.hasOwnProperty(row+'_'+col)) {
                 temp[row+'_'+(col+1)] = this.current_data[row+'_'+col]
@@ -365,53 +408,60 @@ export default {
         this.current_data = {...this.save_data[idx]}
       }
       else if(this.current_backup_idx == idx) {
+        this.selected_layer = this.save_data.length - 1
         this.current_backup_idx = -1
-        this.current_data = {...this.current_backup}
+        // this.current_data = {...this.current_backup}
+        this.current_data = {...this.save_data[this.selected_layer]}
         this.current_backup = null
       }
       else {
         this.current_backup_idx = idx
         this.current_data = {...this.save_data[idx]}
       }
+      this.selected_layer = this.current_backup_idx
     },
-    saveData() {
-      if(this.playing) return
-      if(this.current_backup_idx == -1) {
-        this.save_data.push({...this.current_data})
+    saveData(selected_layer) {
+      if(this.playing || selected_layer == -1) return
+      if(selected_layer) {
+        this.save_data[this.selected_layer] = {...this.current_data}
       } else {
-        this.save_data[this.current_backup_idx] = {...this.current_data}
+        if(this.current_backup_idx == -1) {
+          this.save_data.push({...this.current_data})
+        } else {
+          this.save_data[this.current_backup_idx] = {...this.current_data}
+        }
       }
+      // this.selected_layer = this.save_data.length - 1
     },
     delete_frame(idx) {
       if(this.playing) return
-      if(this.current_backup_idx > -1) {
-        let aa = []
-        aa.push(...this.save_data.slice(0, this.current_backup_idx))
-        aa.push(...this.save_data.slice(this.current_backup_idx+1))
-        this.save_data = aa
-      }
+      let _data = []
+      _data.push(...this.save_data.slice(0, idx))
+      _data.push(...this.save_data.slice(idx + 1))
+      this.save_data = _data
+      // 현재 선택된 프레임을 넘기면 선택이 해제됨
+      this.go_frame(this.current_backup_idx)
     },
     insert_frame(idx) {
       if(this.playing) return
       if(idx == -1) {
-        let aa = []
-        aa.push(...this.save_data.slice(0, this.iii_frame))
-        aa.push({...this.current_data})
-        aa.push(...this.save_data.slice(this.iii_frame))
-        this.save_data = aa
+        let _data = []
+        _data.push(...this.save_data.slice(0, this.selected_layer))
+        _data.push({...this.current_data})
+        _data.push(...this.save_data.slice(this.selected_layer))
+        this.save_data = _data
       } else {
-        let aa = []
-        aa.push(...this.save_data.slice(0, this.iii_frame+1))
-        aa.push({...this.current_data})
-        aa.push(...this.save_data.slice(this.iii_frame+1))
-        this.save_data = aa
+        let _data = []
+        _data.push(...this.save_data.slice(0, this.selected_layer+1))
+        _data.push({...this.current_data})
+        _data.push(...this.save_data.slice(this.selected_layer+1))
+        this.save_data = _data
       }
-    },
-    stop() {
-      this.playing = false
+      // 현재 선택된 프레임을 넘기면 선택이 해제됨
+      this.go_frame(this.current_backup_idx)
     },
     async play() {
-      if(this.playing) return
+      if(this.playing || this.save_data.length < 2) return
       this.playing = true
       let temp = {...this.current_data}
       for(let i=0;i<this.save_data.length;i++) {
@@ -423,6 +473,9 @@ export default {
           break
       }
       this.current_data = temp
+    },
+    stop() {
+      this.playing = false
     },
     wait(time, data) {
       return new Promise(resolve => {
@@ -456,6 +509,16 @@ export default {
       this.color_backgroundColor = this.color_pick + parseInt(this.A).toString(16).padStart(2, '0')
       this.color_backgroundColor = this.color_pick + parseInt(this.A).toString(16).padStart(2, '0')
     },
+    color_pick_apply() {
+      var color = this.color_pick
+      this.R = parseInt(color.substring(1, 3), 16)
+      this.G = parseInt(color.substring(3, 5), 16)
+      this.B = parseInt(color.substring(5, 7), 16)
+
+      var alpha = parseInt(this.A)
+      this.color_backgroundColor = color + alpha.toString(16).padStart(2, '0')
+      this.color_text = color + alpha.toString(16).padStart(2, '0')
+    },
     createData(type, mimetype) {
       var value = canvas.toDataURL(mimetype);
       if (value.indexOf(mimetype) > 0) { // we check if the format is supported
@@ -466,17 +529,6 @@ export default {
       } else {
         return false;
       }
-    },
-
-    color_pick_apply() {
-      var color = this.color_pick
-      this.R = parseInt(color.substring(1, 3), 16)
-      this.G = parseInt(color.substring(3, 5), 16)
-      this.B = parseInt(color.substring(5, 7), 16)
-
-      var alpha = parseInt(this.A)
-      this.color_backgroundColor = color + alpha.toString(16).padStart(2, '0')
-      this.color_text = color + alpha.toString(16).padStart(2, '0')
     },
     drawFill(_row, _col, same_color, fill_color) {
       var size = this.canvas_size + 1
@@ -546,7 +598,11 @@ export default {
     },
     mouseover(event, box) {
       if(this.playing) return
-        box.style.boxShadow = `${this.dot_pixel}px ${this.dot_pixel}px inset ${this.color_backgroundColor}`
+        if(this.mode == 'eraser') {
+          box.style.boxShadow = `${this.dot_pixel}px ${this.dot_pixel}px inset white`
+        } else {
+          box.style.boxShadow = `${this.dot_pixel}px ${this.dot_pixel}px inset ${this.color_backgroundColor}`
+        }
       
       if (this.clicking) {
 
@@ -605,6 +661,13 @@ button {
   }
 }
 
+img.transform-x {
+  transform: scaleX(-1)
+}
+img.transform-y {
+  transform: scaleY(-1)
+}
+
 .layer-arrow {
   display: grid;
   grid-template-columns: auto auto auto;
@@ -616,6 +679,9 @@ button {
   border: 0px;
   background-color: #00000000;
   padding: 0px !important;
+  &:hover {
+    background-color: #38d562;
+  }
 }
 .draw-layer {
   display: flex; flex-direction: column;
@@ -641,7 +707,7 @@ button {
 .layers-btn {
   margin: 20px 0;
   display: flex;
-  gap: 5px;
+  gap: 10px;
   button {
     width: auto;
     height: auto;
@@ -733,5 +799,9 @@ hr {
     width: auto;
     height: 25px;
   }
+}
+
+.hand {
+  cursor: pointer;
 }
 </style>
