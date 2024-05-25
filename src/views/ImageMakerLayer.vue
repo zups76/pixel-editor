@@ -124,7 +124,7 @@
       <div class="item" v-for="(data, index) in save_data" v-bind:key="index">
         <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 3px;">
           <span @click="go_frame(index)" :class="{title: true, selected: current_backup_idx == index}">Layer-{{ index + 1 }}</span>
-          <img @click="saveData(selected_layer)" src="@/assets/save-disk.png" width="24" :style="{filter: selected_layer > -1 ? 'grayscale(0)' : 'grayscale(1)'}">
+          <img @click="saveData(index)" src="@/assets/save-disk.png" width="24" :style="{filter: selected_layer > -1 ? 'grayscale(0)' : 'grayscale(1)'}">
           <img @click="delete_frame(index)" src="@/assets/bin.png" :title="`Delete ${selected_layer + 1} frames`" class="hand" style="width: 24px; height: 24px;">
         </div>
         <div @click="go_frame(index)" :class="{'bg-disable': bg_disable, background: true}" :style="{gridTemplateColumns: '1fr '.repeat(canvas_size)}">
@@ -420,11 +420,18 @@ export default {
       }
       this.selected_layer = this.current_backup_idx
     },
-    saveData(selected_layer) {
-      if(this.playing || selected_layer == -1) return
-      if(selected_layer) {
+    saveData(frame) {
+      if(this.playing) return
+      // 특정 프레임 업데이트
+      if(frame != undefined) {
+        this.save_data[frame] = {...this.current_data}
+      }
+      // 선택 프레임 업데이트
+      else if(this.selected_layer != -1) {
         this.save_data[this.selected_layer] = {...this.current_data}
-      } else {
+      }
+      // 
+      else {
         if(this.current_backup_idx == -1) {
           this.save_data.push({...this.current_data})
         } else {

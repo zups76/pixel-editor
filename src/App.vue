@@ -8,7 +8,7 @@ import HelloWorld from './components/HelloWorld.vue'
     <img alt="Vue logo" class="logo" src="@/assets/lion.gif" width="200" />
 
     <div class="wrapper">
-      <HelloWorld msg="Pixel Maker v0.0.4" />
+      <HelloWorld msg="Pixel Maker v0.0.5" />
 
       <nav>
         <RouterLink to="/">Home</RouterLink>
