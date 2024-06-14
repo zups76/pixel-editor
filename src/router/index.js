@@ -20,26 +20,22 @@ const router = createRouter({
     {
       path: '/maker',
       name: 'ImageMaker',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/ImageMaker.vue')
     },
     {
       path: '/layer',
       name: 'ImageMakerLayer',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/ImageMakerLayer.vue')
     },
     {
       path: '/PixelEditor',
       name: 'PixelEditor',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/PixelEditor.vue')
+    },
+    {
+      path: '/CanvasRotate',
+      name: 'CanvasRotate',
+      component: () => import('../views/CanvasRotate.vue')
     },
   ]
 })

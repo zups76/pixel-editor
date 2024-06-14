@@ -2,69 +2,80 @@
   <div class="pixel-editor">
     
     <div class="select-size">
-      <button @click="changeCanvasSize(n)" v-for="n in pxList" v-bind:key="n" :class="{ selected: canvas_size == n }">{{ n }} x {{ n }}</button>
+      <button @click="changeCanvasSize(n)" v-for="n in pxList" v-bind:key="n" :class="{ selected: dot_cnt == n }">{{ n }} x {{ n }}</button>
     </div>
 
     <div class="main-area">
       
       <div class="tool-box">
-        <button @click="mode = 'draw'" :style="{backgroundColor: mode == 'draw' ? '#ff000054' : ''}" title="그리기"><img src="@/assets/pencil.png" width="32"><br>Draw</button>
-        <button @click="mode = 'eraser'" :style="{backgroundColor: mode == 'eraser' ? '#ff000054' : ''}" title="지우개"><img src="@/assets/eraser.png" width="32"><br>Eraser</button>
-        <button @click="mode = 'fill'" :style="{backgroundColor: mode == 'fill' ? '#ff000054' : ''}" title="채우기"><img src="@/assets/fill.png" class="transform-x" width="32"><br>Fill</button>
+        <button @click="modeDraw(true)" :style="{backgroundColor: isDrawMode ? '#ff000054' : ''}" title="그리기"><img src="@/assets/pencil.png" width="32"><br><span style="text-decoration: underline; text-decoration-thickness: 2px;">D</span>raw</button>
+        <button @click="modeEraser(true)" :style="{backgroundColor: isEraserMode ? '#ff000054' : ''}" title="지우개"><img src="@/assets/eraser.png" width="32"><br><span style="text-decoration: underline; text-decoration-thickness: 2px;">E</span>raser</button>
+
+        <button @click="modeFill(!isFillMode)" :style="{backgroundColor: isFillMode ? '#ff000054' : ''}" title="채우기"><img src="@/assets/fill.png" class="transform-x" width="32"><br><span style="text-decoration: underline; text-decoration-thickness: 2px;">F</span>ill</button>
         
-        <button @click="bg_disable = !bg_disable" :style="{backgroundColor: !bg_disable ? '#ff000054' : ''}" title="그리기"><img src="@/assets/background_foreground.png" width="32"><br>Trans</button>
+        <button @click="modeSpoide(true)" :style="{backgroundColor: isSpoideMode ? '#ff000054' : ''}" title="그리기"><img src="@/assets/eyedropper.png" ref="_a_a_a_a" width="32"></button>
+        <!-- <button @click="bg_disable = !bg_disable" :style="{backgroundColor: !bg_disable ? '#ff000054' : ''}" title="그리기"><img src="@/assets/background_foreground.png" width="32"><br>Trans</button>
+        <hr> -->
         <hr>
         <hr>
-        <button @click="dot_pixel=dot_pixel+2" title="확대"><img src="@/assets/plus-zoom.png" width="32"><br>Zoom in</button>
-        <button @click="dot_pixel=dot_pixel-2" title="축소"><img src="@/assets/minus-zoom.png" width="32"><br>Zoom out</button>
+          <button @click="modeSpoide(true)" :style="{backgroundColor: isSpoideMode ? '#ff000054' : ''}" title="그리기"><img src="@/assets/rect.png" ref="_a_a_a_a" width="32"></button>
+          <hr>
+        <hr>
+        <hr>
+        <button @click="zoomInOut(1)" title="확대"><img src="@/assets/plus-zoom.png" width="32"><br>Zoom in</button>
+        <button @click="zoomInOut(-1)" title="축소"><img src="@/assets/minus-zoom.png" width="32"><br>Zoom out</button>
         <!-- <input type="range" min="5" max="10" step="1" v-model.number="dot_pixel"> -->
         <hr>
         <hr>
-        <button @click="setData(-1)" title="실행취소"><img src="@/assets/undo_redo.png" class="transform-x" width="32"><br>Undo</button>
-        <button @click="setData(1)" title="다시실행"><img src="@/assets/undo_redo.png" width="32"><br>Redo</button>
-        <button @click="_clear()" title="도화지 초기화"><img src="@/assets/broomstick.png" width="32"><br>Clear</button>
-        <button v-if="current_backup_idx == -1" @click="saveData()" title="추가/수정"><img src="@/assets/add.png" width="32"><br>Add</button>
-        <button v-else @click="saveData()" title="추가/수정"><img src="@/assets/save-disk.png" width="32"><br>Save</button>
+        <!-- <button @click="setData(-1)" title="실행취소"><img src="@/assets/undo_redo.png" class="transform-x" width="32"><br>Undo</button>
+        <button @click="setData(1)" title="다시실행"><img src="@/assets/undo_redo.png" width="32"><br>Redo</button> -->
+        <button @click="_clear(ctx)" title="도화지 초기화"><img src="@/assets/broomstick.png" width="32"><br>Clear</button>
+        <button v-if="current_backup_idx == -1" @click="saveData()" title="추가"><img src="@/assets/add.png" width="32"><br>Add</button>
+        <button v-else @click="saveData()" title="수정"><img src="@/assets/save-disk.png" width="32"><br>Save</button>
         <hr>
         <hr>
         <button @click="setData(0)" title="초기화"><img src="@/assets/new-paper.png" width="32"><br>New</button>
-        <button title="내보내기"><img src="@/assets/export.png" width="32"><br>Export</button>
+        <button @click="exportData()" title="내보내기"><img src="@/assets/export.png" width="32"><br>Export</button>
       </div>
 
       <div class="draw-layer">
         
         <div style="display: grid; grid-template-columns: auto auto 1fr; gap: 20px;">
           <div>
-
             <div class="canvas" :style="{ borderColor: borderColor }">
-              <div style="padding: 1px; position: relative; ">
-                <canvas v-show="bgColor == ''" ref="canvas_bg" :style="{ backgroundColor: 'red', position: 'absolute', border: '1px outset black' }"></canvas>
-                <div v-show="bgColor !== ''" :style="{ backgroundColor: bgColor, position: 'absolute', width: '100%', height: '100%', border: '1px outset black' }"></div>
-                <canvas ref="canvas" :style="{ position: 'inherit', border: '1px outset black' }"
+              <div style="padding: 0px; position: relative; border: 1px solid;">
+                <canvas v-show="bgColor == ''" ref="canvas_bg" :style="{ position: 'absolute' }"></canvas>
+                <div v-show="bgColor !== ''" :style="{ backgroundColor: bgColor, position: 'absolute', width: '100%', height: '100%' }"></div>
+                
+                <canvas v-show="showPrevFrame" ref="canvas_prev" :style="{ position: 'absolute' }"></canvas>
+
+                <canvas ref="canvas" :style="{ position: 'absolute' }"></canvas>
+                
+                <canvas ref="canvas_drag" :style="{ position: 'inherit' }"
+                  @mouseup="_mouseup($event)"
                   @mousedown="_mousedown($event)"
                   @mousemove="_mousemove($event)"
-                  @mouseup="_mouseup($event)"
-                  @mousewheel="_mousewheel($event)"
+                  @mouseout="_mouseout($event)"
                 ></canvas>
               </div>
             </div>
           </div>
           
-          <canvas ref="canvas2" style="background-color: #ffffff;"></canvas>
+          <!-- <canvas ref="canvas2" style="background-color: #ffffff;"></canvas> -->
           <!-- Canvas -->
           <!-- <div class="canvas" :style="{ borderColor: borderColor }">
             
             <div style="padding: 1px; position: relative; font-size: 11px;">
-              <div :class="{'bg-disable': bg_disable}" :style="{position: 'absolute', display: 'grid', gridTemplateColumns: '1fr '.repeat(canvas_size), zIndex: 0}">
-                <template v-for="i in canvas_size_row" v-bind:key="i" >
-                  <template v-for="j in canvas_size" v-bind:key="j">
+              <div :class="{'bg-disable': bg_disable}" :style="{position: 'absolute', display: 'grid', gridTemplateColumns: '1fr '.repeat(dot_cnt), zIndex: 0}">
+                <template v-for="i in dot_cnt_row" v-bind:key="i" >
+                  <template v-for="j in dot_cnt" v-bind:key="j">
                     <div :row="i" :col="j" :style="{width: dot_pixel+'px', height: dot_pixel+'px', background: current_data[i + '_' + j] ? '' : bgColor ? bgColor : bg[((i % 2) + (j % 2)) % 2]}"></div>
                   </template>
                 </template>
               </div>
-              <div :style="{display: 'grid', gridTemplateColumns: '1fr '.repeat(canvas_size), position: 'inherit', zIndex: 2}">
-                <template v-for="i in canvas_size_row" v-bind:key="i">
-                  <template v-for="j in canvas_size" v-bind:key="j">
+              <div :style="{display: 'grid', gridTemplateColumns: '1fr '.repeat(dot_cnt), position: 'inherit', zIndex: 2}">
+                <template v-for="i in dot_cnt_row" v-bind:key="i">
+                  <template v-for="j in dot_cnt" v-bind:key="j">
                     <div :row="i" :col="j" :style="{width: dot_pixel+'px', height: dot_pixel+'px', background: current_data[i + '_' + j] ? current_data[i + '_' + j] : '' }"
                       @mousedown="mousedown($event, $event.target)" @mouseover="mouseover($event, $event.target)"
                       @mouseout="mouseout($event.target)"
@@ -144,16 +155,16 @@
           <img @click="saveData(index)" src="@/assets/save-disk.png" width="24" :style="{filter: selected_layer > -1 ? 'grayscale(0)' : 'grayscale(1)'}">
           <img @click="delete_frame(index)" src="@/assets/bin.png" :title="`Delete ${selected_layer + 1} frames`" class="hand" style="width: 24px; height: 24px;">
         </div>
-        <div @click="go_frame(index)" :class="{'bg-disable': bg_disable, background: true}" :style="{gridTemplateColumns: '1fr '.repeat(canvas_size)}">
-          <template v-for="i in canvas_size_row" v-bind:key="i">
-            <template v-for="j in canvas_size" v-bind:key="j">
+        <div @click="go_frame(index)" :class="{'bg-disable': bg_disable, background: true}" :style="{gridTemplateColumns: '1fr '.repeat(dot_cnt)}">
+          <template v-for="i in dot_cnt_row" v-bind:key="i">
+            <template v-for="j in dot_cnt" v-bind:key="j">
               <div :style="{width: px+'px', height: px+'px', background: data[i+'_'+j] ? data[i+'_'+j] : bg[((i % 2) + (j % 2)) % 2]}"></div>
             </template>
           </template>
         </div>
-        <div class="foreground" :style="{gridTemplateColumns: '1fr '.repeat(canvas_size)}">
-          <template v-for="i in canvas_size_row" v-bind:key="i">
-            <template v-for="j in canvas_size" v-bind:key="j">
+        <div class="foreground" :style="{gridTemplateColumns: '1fr '.repeat(dot_cnt)}">
+          <template v-for="i in dot_cnt_row" v-bind:key="i">
+            <template v-for="j in dot_cnt" v-bind:key="j">
               <div :style="{width: px+'px', height: px+'px', background: data[i+'_'+j] ? data[i+'_'+j] : ''}"></div>
             </template>
           </template>
@@ -163,25 +174,44 @@
     <div class="layers">
       <div class="item" v-for="(data, index) in save_canvas_data" v-bind:key="index">
         <object :data="aasdasdsad(data)" type="text/html"></object>
-        <!-- < -->
       </div>
+    </div>
+    <div>
+      <img :src="image" style="border: 1px solid;" v-for="(image, idx) in imageData" v-bind:key="idx">
+    </div>
+    <div>
+      <img :src="ani_image" :style="{ border: '1px solid', width: `${dot_cnt}px`, height: `${dot_cnt}px` }">
     </div>
   </div>
 </template>
 
 <script>
-// import { debounce } from 'lodash'
+import { debounce } from 'lodash'
 
 export default {
   components: {
   },
   data() {
 
-    let canvas_size = 32
-    let canvas_size_row = 32
-    let px = parseInt(150 / canvas_size)
+    class Stack {
+      constructor() {
+        this.arr = [];
+        this.index = 0;
+      }
+      push(item) {
+        this.arr[this.index++] = item;
+      }
+      pop() {
+        if (this.index <= 0) return null;
+        const result = this.arr[--this.index];
+        return result;
+      }
+    }
+
+    let dot_cnt = 32
+    let dot_cnt_row = 32
+    let px = parseInt(150 / dot_cnt)
     let pxList = [8, 16, 24, 32, 48, 128]
-    let px_to_dot_pixel = [30, 20, 15, 11, 9, 4]
 
     let color_history = ['#000000ff', '#ffffffff', '#ff0000ff', '#00ff00ff', '#0000ffff', '#ffff00ff', '#ff00ffff', '#00ffffff', '#999999ff', '#333333ff']
 
@@ -197,13 +227,9 @@ export default {
       color_history,
       px,
       dot_pixel: 10,
-      // dot_pixel: px_to_dot_pixel[pxList.indexOf(canvas_size)],
       pxList,
-      px_to_dot_pixel,
-      mode: 'draw',
-      clicking: false,
-      canvas_size,
-      canvas_size_row,
+      dot_cnt,
+      dot_cnt_row,
       bg: ['#e6e6e6', '#ffffff'],
       color_backgroundColor: '',
       current_data: {},
@@ -228,96 +254,77 @@ export default {
       selected_layer: -1,
       bg_disable: false,
 
-      canvas2: null,
-      ctx2: null,
-      
       canvas_bg: null,
       ctx_bg: null,
       
       canvas: null,
       ctx: null,
-      isShiftDown: false,
+      
+      canvas_drag: null,
+      ctx_drag: null,
+      
       isMouseOver: false,
+      start_point: null,
+      zoom_step: 1,
+      isDrawing: false,
+      _Stack: new Stack(),
+      _oldImageData: null,
+
+      isDrawMode: true,
+      isFillMode: false,
+      isEraserMode: false,
+      isSpoideMode: false,
+
+      showPrevFrame: false,
+      isExport: false,
+
+      imageData: [],
+      ani_image: null,
+      isPlaying: false,
+
     }
   },
   mounted() {
     window.aabb = this
-    window.addEventListener('mouseup', this.mouseup)
     this.color_apply()
-    this.canvas = this.$refs.canvas
-    this.ctx = this.canvas.getContext('2d')
+    this.createCanvas()
 
-    this.canvas_bg = this.$refs.canvas_bg
-    this.ctx_bg = this.canvas_bg.getContext('2d')
-
-    this.canvas2 = this.$refs.canvas2
-    this.ctx2 = this.canvas2.getContext('2d')
-
-
+    window.addEventListener('mouseup', this.mouseup)
 
     window.addEventListener('keydown', function(e) {
-      if (e.key === 'Shift') {
-        this.isShiftDown = true;
+      switch(e.key) {
+        case 'd':
+          this.modeDraw(true)
+          break
+        case 'e':
+          this.modeEraser(true)
+          break
+        case 'f':
+          this.modeFill(!this.isFillMode)
+          break
+        case 'a':
+          // this.play___()
+          if(!this.isPlaying) {
+            this.isPlaying = true
+            this._play()
+          }
+          break
       }
     }.bind(this));
 
     window.addEventListener('keyup', function(e) {
-      if (e.key === 'Shift') {
-        this.isShiftDown = false;
-      }
+      // if (e.key === 'Shift') {
+      //   this.isFillMode = false;
+      // }
     }.bind(this));
-    
-    // window.addEventListener('mousewheel', function(e) {
-    //   // console.log(e)
-    //   e.preventDefault();
-    //   e.stopPropagation();
-    //   // e.preventDefault()
-    //   // e.stopPropagation()
-    //   // if(this.isMouseOver) {
-    //   //   if(e.deltaY > 0) {
-    //   //     this.zoomInOut(-2)
-    //   //   } else if(e.deltaY < 0) {
-    //   //     this.zoomInOut(2)
-    //   //   }
-    //   // }
-    // }.bind(this));
-
-    this.canvas.width = this.canvas_size * this.dot_pixel
-    this.canvas.height = this.canvas_size * this.dot_pixel
-
-    this.canvas_bg.width = this.canvas_size * this.dot_pixel
-    this.canvas_bg.height = this.canvas_size * this.dot_pixel
-
-    this.canvas2.width = this.canvas_size
-    this.canvas2.height = this.canvas_size
-
-
-
-    let width = this.canvas_size
-    let height = this.canvas_size
-    
-    for (var y=0; y<height; y++) {
-      for (var x=0; x<width; x++) {
-        this.draw(this.ctx_bg, x * this.dot_pixel, y * this.dot_pixel, this.bg[(y+x)%2])
-      }
-    }
-    
   },
   watch: {
-    canvas_size_row: function (vv) {
-      this.canvas_size_row = parseInt(vv)
+    dot_cnt_row: function (vv) {
+      this.dot_cnt_row = parseInt(vv)
     },
-    canvas_size: function (vv) {
-      this.canvas_size = parseInt(vv)
-      this.canvas_size_row = parseInt(vv)
-      // this.current_data = {}
-      // this.history = [{}]
-      // this.history_idx = 0
-      // this.dot_pixel = this.px_to_dot_pixel[this.pxList.indexOf(this.canvas_size)]
-      console.log(this.dot_pixel)
-      // if(!this.dot_pixel) {
-      //   this.dot_pixel = 3
-      // }
+    dot_cnt: function (vv) {
+      this.dot_cnt = parseInt(vv)
+      this.dot_cnt_row = parseInt(vv)
     },
     R: function (vv) {
       this.color_apply()
@@ -338,35 +345,87 @@ export default {
       this.color_pick_apply()
     },
     dot_pixel: function (_new, _old) {
-      this.redraw_canvas(_new, _old)
+      this.createCanvas(true, _old)
+
+      if(this.isExport) {
+        this.imageData.push(this.canvas.toDataURL('image/png'))
+        this.isExport = false
+        this.dot_pixel = 10
+      }
     }
   },
   methods: {
-    // actionReset: debounce(function () {
-    //   console.log('actionReset')
-    //   this.isOverlap = false
-    // }, 200),
-    zoomInOut(add) {
-      if((this.dot_pixel+add) >= 3 && (this.dot_pixel+add) <= 25) {
-        this.dot_pixel += add
-      }
+    async play___() {
+      // var img = new Image()
+      // img.onload = function (a, b, c) {
+      //   // console.log(this.width)
+      //   // console.log(this.height)
+      //   console.log(this.aaasdasd)
+      //     console.log(this)
+      //     console.log(img)
+      //     console.log(this.ctx)
+      this.dot_pixel = 1
+      await this.wait2(500)
+      this.ctx.drawImage(this.$refs._a_a_a_a, 0, 0);
+      this.dot_pixel = 10
+      // }
+      // img.src = this.$refs._a_a_a_a.src
     },
-    _mousewheel(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if(e.ctrlKey) {
-        if(e.deltaY > 0) {
-          this.zoomInOut(-2)
-        } else if(e.deltaY < 0) {
-          this.zoomInOut(2)
+    async _play() {
+      // if(this.playing || this.save_data.length < 2) return
+      // this.playing = true
+      // let temp = {...this.current_data}
+      for(let i=0;i<this.imageData.length;i++) {
+        // if(this.playing)
+        this.ani_image = this.imageData[i]
+        await this.wait(200)
+          // await this.wait2(this.interval, this.save_data[i])
+        // if(this.save_data.length-1 == i)
+        //   i = -1
+        // if(!this.playing)
+        //   break
+      }
+      this.isPlaying = false
+    },
+
+    exportData() {
+      this.isExport = true
+      this.dot_pixel = 1
+    },
+    modeDraw(isDrawMode) {
+      this.isDrawMode = isDrawMode;
+      this.isEraserMode = false
+      this.isSpoideMode = false
+    },
+    modeEraser(isEraserMode) {
+      this.isEraserMode = isEraserMode;
+      this.isDrawMode = false
+      this.isSpoideMode = false
+    },
+    modeSpoide(isSpoideMode) {
+      this.isSpoideMode = isSpoideMode
+      this.isDrawMode = false
+      this.isEraserMode = false
+    },
+    modeFill(isFillMode) {
+      this.isFillMode = isFillMode;
+      if(isFillMode) {
+        if(this._Stack.index == 1) {
+          let _pos = this._Stack.pop()
+          this.draw(this.ctx, _pos.pos, undefined, _pos.color);
         }
       }
     },
+    zoomInOut(plus_minus) {
+      if( (this.dot_pixel + this.zoom_step * plus_minus) >= 1) {
+        this.dot_pixel += (this.zoom_step * plus_minus)
+      }
+    },
     changeCanvasSize(n) {
-      if(this.canvas_size == n || !confirm('캔버스 크기를 변경합니까? 작업 데이터가 삭제됩니다.')) {
+      if(this.dot_cnt == n || !confirm('캔버스 크기를 변경합니까? 작업 데이터가 삭제됩니다.')) {
         return
       }
-      this.canvas_size = n
+      this.dot_cnt = n
     },
     color_del(idx) {
       if(confirm('del?')) {
@@ -378,10 +437,6 @@ export default {
     },
     color(add, color) {
       if(add) {
-        // var _color_history = []
-        // _color_history.push(...this.color_history.slice(1))
-        // _color_history.push(this.color_backgroundColor)
-        // this.color_history = _color_history
         this.color_history.push(this.color_backgroundColor)
       } else {
         this.R = parseInt(color.substring(1, 3), 16)
@@ -394,8 +449,8 @@ export default {
     },
     aasdasdsad(data) {
         var canvas = document.createElement('canvas');
-        this.canvas.width = this.canvas_size * this.dot_pixel
-        this.canvas.height = this.canvas_size * this.dot_pixel
+        this.canvas.width = this.dot_cnt * this.dot_pixel
+        this.canvas.height = this.dot_cnt * this.dot_pixel
         
         canvas.getContext('2d').putImageData(data, 0, 0); // at coords 0,0
 
@@ -432,8 +487,8 @@ export default {
         var col = Math.ceil(Math.sqrt(this.save_data.length))
         var row = Math.ceil(this.save_data.length/col)
 
-        var height=this.canvas_size * col;
-        var width=this.canvas_size * col;
+        var height=this.dot_cnt * col;
+        var width=this.dot_cnt * col;
 
         var arr = new Array(row);
         for (var i = 0; i < row; i++) {
@@ -455,9 +510,9 @@ export default {
         var idx=0
         var hh = 4
         for (var ss=0; ss<row; ss++) {
-          for (var i=1; i<=this.canvas_size; i++) {
+          for (var i=1; i<=this.dot_cnt; i++) {
             for (var s=0; s<col; s++) {
-              for (var j=1; j<=this.canvas_size; j++,idx++) {
+              for (var j=1; j<=this.dot_cnt; j++,idx++) {
                 var color = arr[ss][s][i+'_'+j]
                 if(color) {
                   data[idx*4+0] = parseInt(color.substring(1, 3), 16)
@@ -470,8 +525,6 @@ export default {
           }
         }
 
-        // console.log(data)
-        // console.log(data.length)
         context.putImageData(imageData, 0, 0); // at coords 0,0
 
         var value = canvas.toDataURL('image/png');
@@ -484,16 +537,16 @@ export default {
       if(_row != 0) {
         var temp = {}
         if(_row == -1) {
-          for(var row=2; row<=this.canvas_size_row; row++) {
-            for(var col=1; col<=this.canvas_size; col++) {
+          for(var row=2; row<=this.dot_cnt_row; row++) {
+            for(var col=1; col<=this.dot_cnt; col++) {
               if(this.current_data.hasOwnProperty(row+'_'+col)) {
                 temp[(row-1)+'_'+col] = this.current_data[row+'_'+col]
               }
             }
           }
         } else {
-          for(var row=this.canvas_size_row-1; row>0; row--) {
-            for(var col=1; col<=this.canvas_size; col++) {
+          for(var row=this.dot_cnt_row-1; row>0; row--) {
+            for(var col=1; col<=this.dot_cnt; col++) {
               if(this.current_data.hasOwnProperty(row+'_'+col)) {
                 temp[(row+1)+'_'+col] = this.current_data[row+'_'+col]
               }
@@ -505,16 +558,16 @@ export default {
       if(_col != 0) {
         var temp = {}
         if(_col == -1) {
-          for(var row=1; row<=this.canvas_size_row; row++) {
-            for(var col=2; col<=this.canvas_size; col++) {
+          for(var row=1; row<=this.dot_cnt_row; row++) {
+            for(var col=2; col<=this.dot_cnt; col++) {
               if(this.current_data.hasOwnProperty(row+'_'+col)) {
                 temp[row+'_'+(col-1)] = this.current_data[row+'_'+col]
               }
             }
           }
         } else {
-          for(var row=1; row<=this.canvas_size_row; row++) {
-            for(var col=this.canvas_size-1; col>0; col--) {
+          for(var row=1; row<=this.dot_cnt_row; row++) {
+            for(var col=this.dot_cnt-1; col>0; col--) {
               if(this.current_data.hasOwnProperty(row+'_'+col)) {
                 temp[row+'_'+(col+1)] = this.current_data[row+'_'+col]
               }
@@ -589,7 +642,6 @@ export default {
           this.save_data[this.current_backup_idx] = {...this.current_data}
         }
       }
-      // this.selected_layer = this.save_data.length - 1
     },
     delete_frame(idx) {
       if(this.playing) return
@@ -637,7 +689,8 @@ export default {
     },
     wait(time, data) {
       return new Promise(resolve => {
-        this.current_data = data
+        if(data)
+          this.current_data = data
         setTimeout(() => {
           resolve();
         }, time);
@@ -677,6 +730,7 @@ export default {
       this.color_backgroundColor = color + alpha.toString(16).padStart(2, '0')
       this.color_text = color + alpha.toString(16).padStart(2, '0')
     },
+
     createData(type, mimetype) {
       var value = canvas.toDataURL(mimetype);
       if (value.indexOf(mimetype) > 0) { // we check if the format is supported
@@ -688,197 +742,292 @@ export default {
         return false;
       }
     },
-    drawFill(_row, _col, same_color, fill_color) {
-      var size = this.canvas_size + 1
-      var aa = [
-        { row: 0, col: -1 },
-        { row: 0, col: +1 },
-        { row: -1, col: 0 },
-        { row: -1, col: -1 },
-        { row: -1, col: +1 },
-        { row: 1, col: 0 },
-        { row: 1, col: -1 },
-        { row: 1, col: +1 },
-      ]
-      aa.forEach(v => {
-        var __r = _row + v.row
-        var __c = _col + v.col
-        try {
-          if (__r == 0 || __c == 0)
-            return
-          if (__r == size || __c == size)
-            return
-          var _color = this.current_data[__r + '_' + __c]
-          if (_color == fill_color)
-            return
-          if (same_color == _color) {
-            this.current_data[__r + '_' + __c] = fill_color
-            this.drawFill(parseInt(__r), parseInt(__c), same_color, fill_color)
+
+
+    createCanvas(isReset, _old) {
+
+      // 그려져있던 데이터 임시저장
+      if(isReset === true) {
+        this._oldImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height)
+        
+      }
+      // 캔버스 초기화
+      else {
+        this.canvas = this.$refs.canvas
+        this.ctx = this.canvas.getContext('2d')
+  
+        this.canvas_bg = this.$refs.canvas_bg
+        this.ctx_bg = this.canvas_bg.getContext('2d')
+  
+        this.canvas_drag = this.$refs.canvas_drag
+        this.ctx_drag = this.canvas_drag.getContext('2d')
+
+        this.canvas.addEventListener('mousemove', function(e) {
+          this._current_point(e)
+        }.bind(this));
+      }
+
+      // 캔버스 크기 지정
+      this.canvas.width = this.dot_cnt * this.dot_pixel
+      this.canvas.height = this.dot_cnt * this.dot_pixel
+
+      this.canvas_bg.width = this.dot_cnt * this.dot_pixel
+      this.canvas_bg.height = this.dot_cnt * this.dot_pixel
+
+      this.canvas_drag.width = this.dot_cnt * this.dot_pixel
+      this.canvas_drag.height = this.dot_cnt * this.dot_pixel
+
+      // 배경 격자 그리기
+      this._clear(this.ctx_bg)
+      let width = this.dot_cnt
+      let height = this.dot_cnt
+      for (var y=0; y<height; y++) {
+        for (var x=0; x<width; x++) {
+          this.draw(this.ctx_bg, {x: x * this.dot_pixel, y: y * this.dot_pixel}, undefined, this.bg[(y+x)%2])
+        }
+      }
+
+      // 확대 전 도트 이미지를 확대/축소하여 다시 그리기
+      if(isReset === true) {
+        for (var y=0; y<height; y++) {
+          for (var x=0; x<width; x++) {
+            let color = this.getPixelColor(this._oldImageData, x*_old, y*_old)
+            this.draw(this.ctx, {x: x * this.dot_pixel, y: y * this.dot_pixel}, undefined, color);
           }
-        } catch (e) {
+        }
+      }
+    },
+
+    // 도트 그리기 함수
+    draw(ctx, start_point, ent_point, color) {
+
+      if(!String(color).startsWith('#')) {
+        if(color.r == undefined)
+          return
+        color = '#' +
+        color.r.toString(16).padStart(2, '0') +
+        color.g.toString(16).padStart(2, '0') +
+        color.b.toString(16).padStart(2, '0') +
+        color.a.toString(16).padStart(2, '0')
+      }
+
+      ctx.fillStyle = color;
+      start_point.x = start_point.x - (start_point.x % this.dot_pixel)
+      start_point.y = start_point.y - (start_point.y % this.dot_pixel)
+
+      if(ent_point == null || ent_point == undefined) {
+        ent_point = {x: this.dot_pixel, y: this.dot_pixel}
+      }
+
+      // 투명도가 있는 경우 중첩되어 진해지는 현상을 방지한다.
+      this._clear(ctx, start_point, {w: ent_point.x, h: ent_point.y})
+
+      ctx.fillRect(start_point.x, start_point.y, ent_point.x, ent_point.y)
+
+      // this._draw_1_pixel(start_point.x, start_point.y, color);
+    },
+
+    _draw_1_pixel(x, y, color) {
+      this.ctx2.fillStyle = color;
+      this.ctx2.fillRect(x/this.dot_pixel, y/this.dot_pixel, 1, 1);
+    },
+
+    _clear(ctx, s_point, e_point) {
+      if(s_point == null || e_point == null) {
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+      } else {
+        ctx.clearRect(s_point.x, s_point.y, e_point.w, e_point.h)
+      }
+    },
+
+    _position(e, correct=true) {
+      let rect = e.target.getBoundingClientRect()
+      let x = Math.floor(e.clientX - this.canvas.offsetLeft) - rect.x
+      let y = Math.floor(e.clientY - this.canvas.offsetTop) - rect.y
+
+      if(correct) {
+        x = x + (this.dot_pixel * Math.round((x % this.dot_pixel) * 0.1)) - (x % this.dot_pixel)
+        y = y + (this.dot_pixel * Math.round((y % this.dot_pixel) * 0.1)) - (y % this.dot_pixel)
+      } else {
+        x = x - (x % this.dot_pixel)
+        y = y - (y % this.dot_pixel)
+      }
+
+      return {x, y}
+    },
+
+
+
+    drawFill(data, _x, _y, same_color, fill_color, _temp) {
+      var nearby_point = [
+        { x: 0, y: -1 },
+        { x: 0, y: +1 },
+        { x: -1, y: 0 },
+        { x: 1, y: 0 },
+      ]
+      nearby_point.forEach(v => {
+        var __x = _x + this.dot_pixel * v.x
+        var __y = _y + this.dot_pixel * v.y
+        if(__x < 0 || __y < 0 || __x > this.canvas.width || __y > this.canvas.height) {
+          // console.log('out')
+        } else {
+          let cc = this.getPixelColor(data, __x, __y)
+          
+          if (!_temp.hasOwnProperty(`${__x}_${__y}`) && JSON.stringify(cc) == JSON.stringify(same_color)) {
+            _temp[`${__x}_${__y}`] = true
+            this.draw(this.ctx, {x: __x, y: __y}, undefined, fill_color);
+            this.drawFill(data, __x, __y, same_color, fill_color, _temp)
+          }
         }
       })
     },
-    draw(box, _mode) {
-      if(this.playing) return
 
-      if (_mode == 'fill') {
-        var same_color = this.current_data[`${box.getAttribute('row')}_${box.getAttribute('col')}`]
-        this.current_data[`${box.getAttribute('row')}_${box.getAttribute('col')}`] = this.color_backgroundColor
-        var fill_color = this.current_data[`${box.getAttribute('row')}_${box.getAttribute('col')}`]
-        if (same_color == fill_color)
-          return
-        var _row = box.getAttribute('row')
-        var _col = box.getAttribute('col')
-        this.current_data[`${box.getAttribute('row')}_${box.getAttribute('col')}`] = fill_color
-        this.drawFill(parseInt(_row), parseInt(_col), same_color, fill_color)
-        this.backup()
-      } else {
-        if (_mode == 'draw') {
-          this.current_data[`${box.getAttribute('row')}_${box.getAttribute('col')}`] = this.color_backgroundColor
-        } else {
-          this.current_data[`${box.getAttribute('row')}_${box.getAttribute('col')}`] = ''
-        }
-      }
-    },
-    // 도트 그리기 함수
-    redraw_canvas(_new, _old) {
-      
 
-      let width = this.canvas_size
-      let height = this.canvas_size
-      
-      // for (var y=0; y<height; y++) {
-      //   for (var x=0; x<width; x++) {
-      //     this.draw(this.ctx_bg, x * this.dot_pixel, y * this.dot_pixel, this.bg[(y+x)%2])
-      //   }
-      // }
 
-      // 배경
-      // let _oldImageData = this.ctx.getImageData(0, 0, this.canvas_bg.width, this.canvas_bg.height)
-      // let width = this.canvas_bg.width / _old
-      // let height = this.canvas_bg.height / _old
-
-      this.canvas_bg.width = this.canvas_size * _new
-      this.canvas_bg.height = this.canvas_size * _new
-
-      this.ctx_bg.clearRect(0, 0, this.canvas_bg.width, this.canvas_bg.height)
-
-      for (var y=0; y<height; y++) {
-        for (var x=0; x<width; x++) {
-          this.draw(this.ctx_bg, x * _new, y * _new, this.bg[(y+x)%2]);
-        }
-      }
-
-      
-      // 도트 이미지
-      let _oldImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height)
-
-      this.canvas.width = this.canvas_size * _new
-      this.canvas.height = this.canvas_size * _new
-
-      var idx=0
-      for (var y=0; y<height; y++) {
-        for (var x=0; x<width; x++,idx++) {
-
-          let ccc = this.getPixelColor(_oldImageData, x*_old, y*_old)
-          this.draw222(this.ctx, x * _new, y * _new, ccc);
-        }
-      }
-    },
-    // 도트 그리기 함수
-    draw222(ctx, x, y, c) {
-      
-      // if(c.a == 255) {
-      //   console.log(x,y,c)
-      // }
-      let ccc = '#' + parseInt(c.r).toString(16).padStart(2, '0') +
-      parseInt(c.g).toString(16).padStart(2, '0') +
-      parseInt(c.b).toString(16).padStart(2, '0') +
-      parseInt(c.a).toString(16).padStart(2, '0')
-      ctx.fillStyle = ccc;
-      x = x - (x % this.dot_pixel)
-      y = y - (y % this.dot_pixel)
-      ctx.fillRect(x, y, this.dot_pixel, this.dot_pixel);
-    },
-    // 도트 그리기 함수
-    draw(ctx, x, y, color) {
-      ctx.fillStyle = color;
-      x = x - (x % this.dot_pixel)
-      y = y - (y % this.dot_pixel)
-
-      ctx.fillRect(x, y, this.dot_pixel, this.dot_pixel);
-
-      // draw_1_pixel(x, y);
-    },
-    // draw_1_pixel(x, y) {
-    //   this.ctx2.fillStyle = this.color_backgroundColor;
-    //   this.ctx2.fillRect(x/this.dot_pixel, y/this.dot_pixel, 1, 1);
-    // },
-    _clear() {
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-    },
     _mousedown(e) {
+      this._Stack.pop()
       if(e.button != 0) return
-      if(this.isShiftDown) {
-        let imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height)
+      
+      if(this.isSpoideMode) {
 
-        let rect = e.target.getBoundingClientRect()
-        let x = Math.floor(e.clientX - this.canvas.offsetLeft - rect.x )
-        let y = Math.floor(e.clientY - this.canvas.offsetTop - rect.y )
-
-        x = x - (x % this.dot_pixel)
-        y = y - (y % this.dot_pixel)
-
-        console.log(imageData.width)
-        console.log(imageData.height)
-        console.log(this.getPixelColor(imageData, x, y))
-
-
-
-
-        // // console.log(arr)
+        let _oldImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height)
         
-        // let width = this.canvas2.width
-        // let height = this.canvas2.height
-        
-        // var imageData2 = this.ctx2.createImageData(width, height);
-        // var data = imageData2.data;
-        
-        // var idx=0
-        // for (var y=0; y<height; y++) {
-        //   for (var x=0; x<width; x++,idx++) {
+        let pos = this._position(e, false)
+        let color = this.getPixelColor(_oldImageData, pos.x, pos.y)
 
-        //     let ccc = this.getPixelColor(imageData, x*this.dot_pixel, y*this.dot_pixel)
-        //     // console.log(ccc)
-        //     // var color = arr[ss][s][i+'_'+j]
-        //     // if(color) {
-        //       data[idx*4+0] = ccc.r
-        //       data[idx*4+1] = ccc.g
-        //       data[idx*4+2] = ccc.b
-        //       data[idx*4+3] = ccc.a
-        //     // }
-        //   }
-        // }
-        // this.ctx2.putImageData(imageData2, 0, 0); // at coords 0,0
+        this.R = color.r
+        this.G = color.g
+        this.B = color.b
+        this.A = color.a
+        return
+      } else if(this.isDrawMode) {
+        if(this.isFillMode) {
+          this.start_point = this._position(e, false)
 
-      } else {
-        this.isDrawing = true
-        let rect = e.target.getBoundingClientRect()
-        this.draw(this.ctx, Math.floor(e.clientX - this.canvas.offsetLeft - rect.x ), Math.floor(e.clientY - this.canvas.offsetTop - rect.y ), this.color_backgroundColor);
+          let _oldImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height)
+          let same_color = this.getPixelColor(_oldImageData, this.start_point.x, this.start_point.y)
+
+          let _color = this.color_backgroundColor
+          let fill_color = {
+            r: parseInt(_color.substring(1, 3), 16),
+            g: parseInt(_color.substring(3, 5), 16),
+            b: parseInt(_color.substring(5, 7), 16),
+            a: parseInt(_color.substring(7, 9), 16)
+          }
+
+          if(JSON.stringify(fill_color) != JSON.stringify(same_color)) {
+            this.draw(this.ctx, this.start_point, undefined, fill_color);
+            this.drawFill(_oldImageData, this.start_point.x, this.start_point.y, same_color, fill_color, {})
+          }
+          // this.drawFill(_oldImageData.data, this.start_point.x, this.start_point.y, same_color, this.color_backgroundColor)
+
+        } else {
+          this.draw(this.ctx, this._position(e, false), undefined, this.color_backgroundColor);
+        }
+      } else if(this.isEraserMode) {
+        if(this.isFillMode) {
+          this.start_point = this._position(e, false)
+
+          let _oldImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height)
+          let same_color = this.getPixelColor(_oldImageData, this.start_point.x, this.start_point.y)
+
+          let fill_color = {
+            r: 0,
+            g: 0,
+            b: 0,
+            a: 0
+          }
+
+          if(JSON.stringify(fill_color) != JSON.stringify(same_color)) {
+            this.draw(this.ctx, this.start_point, undefined, fill_color);
+            this.drawFill(_oldImageData, this.start_point.x, this.start_point.y, same_color, fill_color, {})
+          }
+        } else {
+          this._clear(this.ctx, this._position(e, false), {w: this.dot_pixel, h: this.dot_pixel})
+        }
       }
+      this.isDrawing = true
     },
+
     _mousemove(e) {
-      if(this.isDrawing && !this.isShiftDown) {
-        let rect = e.target.getBoundingClientRect()
-        this.draw(this.ctx, Math.floor(e.clientX - this.canvas.offsetLeft - rect.x ), Math.floor(e.clientY - this.canvas.offsetTop - rect.y ), this.color_backgroundColor);
-        
+      if(this.isDrawing) {
+        if(this.isDrawMode) {
+          if(this.isFillMode) {
+            // let pos = this._position(e)
+            // this._clear(this.ctx_drag)
+            // this.ctx_drag.strokeStyle = this.color_backgroundColor
+            // this.ctx_drag.strokeRect(this.start_point.x, this.start_point.y, pos.x - this.start_point.x, pos.y - this.start_point.y); // 임시 사각형 그리기
+          } else {
+            this.draw(this.ctx, this._position(e, false), undefined, this.color_backgroundColor);
+          }
+        } else if(this.isEraserMode) {
+          if(this.isFillMode) {
+            // let pos = this._position(e)
+            
+            // this._clear(this.ctx_drag)
+            // this.ctx_drag.strokeStyle = this.color_backgroundColor
+            // this.ctx_drag.strokeRect(this.start_point.x, this.start_point.y, pos.x - this.start_point.x, pos.y - this.start_point.y); // 임시 사각형 그리기
+          } else {
+            let pos = this._position(e, false)
+            this._clear(this.ctx, this._position(e, false), {w: this.dot_pixel, h: this.dot_pixel})
+          }
+        }
       }
-      // this.draw(Math.floor((e.clientX - this.canvas.offsetLeft) / 1) * 1, Math.floor((e.clientY - this.canvas.offsetTop) / 1) * 1);
     },
+
+    _current_point(e) {
+      if(this.isDrawing || this.isFillMode || this.isEraserMode) {
+        if(this._Stack.index == 1) {
+          let _pos = this._Stack.pop()
+          this.draw(this.ctx, _pos.pos, undefined, _pos.color);
+        }
+      } else if(!this.isSpoideMode) {
+        let _oldImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height)
+
+        let pos = this._position(e, false)
+        let color = this.getPixelColor(_oldImageData, pos.x, pos.y)
+
+        if(this._Stack.index == 0) {
+          this._Stack.push({pos, color: color})
+          this.draw(this.ctx, pos, undefined, this.color_backgroundColor);
+        } else {
+          let _pos = this._Stack.pop()
+          if(pos.x == _pos.pos.x && pos.y == _pos.pos.y) {
+            this._Stack.push({pos: _pos.pos, color: _pos.color})
+          } else {
+            this._Stack.push({pos, color})
+
+            this.draw(this.ctx, _pos.pos, undefined, _pos.color);
+            
+            this.draw(this.ctx, pos, undefined, this.color_backgroundColor);
+          }
+        }
+      }
+    },
+
     _mouseup(e) {
       this.isDrawing = false
+
+      if (!this.isSpoideMode && this.isFillMode) {
+        if(this.isDrawMode) {
+          let pos = this._position(e)
+          this.draw(this.ctx, this.start_point, {x: pos.x - this.start_point.x, y: pos.y - this.start_point.y}, this.color_backgroundColor);
+        } else if(this.isEraserMode) {
+          let pos = this._position(e)
+          // console.log(this.start_point, {x: pos.x - this.start_point.x, y: pos.y - this.start_point.y})
+          this._clear(this.ctx, this.start_point, {w: pos.x - this.start_point.x, h: pos.y - this.start_point.y});
+        }
+        this._clear(this.ctx_drag)
+      }
     },
+
+    _mouseout(e) {
+      if(this._Stack.index == 1) {
+        let _pos = this._Stack.pop()
+        this.draw(this.ctx, _pos.pos, undefined, _pos.color);
+      }
+    },
+
     // 픽셀 색상 가져오기 함수
     getPixelColor(imageData, x, y) {
         let index = (x + y * imageData.width) * 4;
@@ -889,55 +1038,12 @@ export default {
             a: imageData.data[index + 3]
         };
     },
-    mousedown(event, box) {
-      if(this.playing) return
 
-      if (this.mode == 'fill') {
-        this.draw(box, 'fill')
-      } else {
-        this.clicking = true
-        this.current_data[`${box.getAttribute('row')}_${box.getAttribute('col')}`] = this.mode === 'eraser' ? '' : this.color_backgroundColor
-      }
-    },
-    mouseout(box) {
-      box.style.boxShadow = ''
-    },
-    mouseover(event, box) {
-      if(this.playing) return
-        if(this.mode == 'eraser') {
-          box.style.boxShadow = `${this.dot_pixel}px ${this.dot_pixel}px inset white`
-        } else {
-          box.style.boxShadow = `${this.dot_pixel}px ${this.dot_pixel}px inset ${this.color_backgroundColor}`
-        }
-      
-      if (this.clicking) {
-
-        if(event.shiftKey) {
-          if(this.mode == 'draw') {
-            this.draw(box, 'eraser')
-          }
-          else {
-            this.draw(box, 'draw')
-          }
-        } else {
-          this.draw(box, this.mode)
-        }
-      }
-    },
-    mouseup() {
-      if (this.clicking) {
-        this.backup()
-      }
-      this.clicking = false
-      this.isDrawing = false
-    },
     backup() {
       this.history = this.history.slice(0, this.history_idx + 1)
       this.history.push({ ...this.current_data })
       this.history_idx = this.history.length - 1
     },
-    alert() {
-    }
   }
 }
 </script>

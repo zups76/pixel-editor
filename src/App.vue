@@ -8,7 +8,7 @@ import HelloWorld from './components/HelloWorld.vue'
     <img alt="Vue logo" class="logo" src="@/assets/lion.gif" width="200" />
 
     <div class="wrapper">
-      <HelloWorld msg="Pixel Editor v0.0.6" />
+      <HelloWorld msg="Pixel Editor v0.0.7" />
 
       <nav>
         <RouterLink to="/">Home</RouterLink>
@@ -16,6 +16,8 @@ import HelloWorld from './components/HelloWorld.vue'
         <RouterLink to="/maker">Image Maker</RouterLink> -->
         <RouterLink to="/layer">Image Maker Layer</RouterLink>
         <RouterLink to="/PixelEditor">Pixel Editor</RouterLink>
+        <RouterLink to="/CanvasRotate">Canvas Rotate</RouterLink>
+        <button @click="ooooppeen">팝업</button>
       </nav>
     </div>
   </header>
@@ -23,6 +25,26 @@ import HelloWorld from './components/HelloWorld.vue'
   <RouterView />
 </template>
 
+<script>
+export default {
+  data() {
+    return {
+      
+    }
+  },
+  mounted() {
+    window.ch = false
+    if(opener)
+      opener.window.asdsads = true
+  },
+  methods: {
+    ooooppeen() {
+      window.ch = true
+      window.aaaaaaaaa = window.open('http://localhost:5173/pixel-editor/')
+    }
+  }
+}
+</script>
 <style scoped>
 header {
   line-height: 1.5;
